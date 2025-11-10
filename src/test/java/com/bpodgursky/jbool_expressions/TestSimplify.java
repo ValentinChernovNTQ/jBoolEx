@@ -42,6 +42,8 @@ public class TestSimplify extends JBoolTestCase {
     // test CollapseNegation rules
     assertSimplify("(A | C | D)", "A | (!A & C) | D");
     assertSimplify("(C | D | (A & E))", "(A & E) | (!(A & E) & C) | D");
+
+    assertSimplify("((A & B) | (A & C) | (B & C))", "(A & B) | (A & C) | (B & C)");
   }
 
   @Test
@@ -80,5 +82,40 @@ public class TestSimplify extends JBoolTestCase {
     if(!finished.get()){
       fail("QMC is not as fast as expected on this expression.");
     }
+  }
+
+  @Test
+  public void testNestedAndOr() {
+    assertSimplify("A", "A & (A | (B & C))");
+  }
+  
+  @Test
+  public void testDeeplyNestedExpression() {
+    assertSimplify("A", "A | (A & (B | (C & D)))");
+  }
+  
+  @Test
+  public void testSimplifyLargerExpression() {
+    assertSimplify("(A & C)", "(A & C) | ((A & C) & (B | (D & E)))");
+  }
+  
+  @Test
+  public void testExpressionCollapsing() {
+    assertSimplify("A", "A & (A | (B & (C | D)))");
+  }
+  
+  @Test
+  public void testComplexNestedExpression() {
+    assertSimplify("(A & C)", "(A & C) | ((A & C) & (B | (D & (E | (F & G)))))");
+  }
+  
+  @Test
+  public void testMixedOperators() {
+    assertSimplify("(A & C)", "(A & C) | ((A & C) & (B | (D & E))) | ((A & C) & (F | (G & H)))");
+  }
+  
+  @Test
+  public void testMultipleLevelsOfNesting() {
+    assertSimplify("((A & B) | (A & C) | (B & C))", "(A & B) | (A & C) | (B & C)");
   }
 }
