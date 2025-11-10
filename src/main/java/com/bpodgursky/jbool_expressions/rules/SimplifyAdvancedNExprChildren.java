@@ -4,7 +4,6 @@ import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.NExpression;
 import com.bpodgursky.jbool_expressions.Or;
-import com.bpodgursky.jbool_expressions.cache.RuleSetCache;
 import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.util.ExprFactory;
 
@@ -12,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //  a | (a & b) = a, and the like
-public class SimplifyNExprChildren<K> extends Rule<NExpression<K>, K> {
+public class SimplifyAdvancedNExprChildren<K> extends Rule<NExpression<K>, K> {
 
   @Override
   public Expression<K> applyInternal(NExpression<K> input, ExprOptions<K> options) {
@@ -37,9 +36,9 @@ public class SimplifyNExprChildren<K> extends Rule<NExpression<K>, K> {
     return input;
   }
 
-  private boolean checkContains(NExpression expr, Expression toCheck) {
+  private boolean checkContains(NExpression<K> expr, Expression<K> toCheck) {
     for (int i = 0; i < expr.expressions.length; i++) {
-      Expression child = expr.expressions[i];
+      Expression<K> child = expr.expressions[i];
 
       if (child.equals(toCheck)) {
         return true;
@@ -49,19 +48,18 @@ public class SimplifyNExprChildren<K> extends Rule<NExpression<K>, K> {
     return false;
   }
 
-  private boolean checkContainsAllChildren(NExpression expr1, NExpression toCheck) {
+  private boolean checkContainsAllChildren(NExpression<K> expr1, NExpression<K> toCheck) {
+      int i = 0;
+      int j = 0;
 
-    int i = 0;
-    int j = 0;
-
-    while (i < expr1.expressions.length && j < toCheck.expressions.length) {
-      if (expr1.expressions[i].equals(toCheck.expressions[j])) {
-        j++;
+      while (i < expr1.expressions.length && j < toCheck.expressions.length) {
+          if (expr1.expressions[i].equals(toCheck.expressions[j])) {
+              j++;
+          }
+          i++;
       }
-      i++;
-    }
 
-    return j == toCheck.expressions.length;
+      return j == toCheck.expressions.length;
   }
 
   //  return true if we know that expr is always true when exprCheckSubset is true
@@ -74,43 +72,45 @@ public class SimplifyNExprChildren<K> extends Rule<NExpression<K>, K> {
 
     //  (a | b) & (a | b | c)
     if (expr instanceof Or && exprCheckSubset instanceof Or && parent instanceof And) {
-      return checkContainsAllChildren((Or)expr, (Or)exprCheckSubset);
+      return checkContainsAllChildren((Or<K>)expr, (Or<K>)exprCheckSubset);
     }
 
     //  (a & b) | (a & b & c)
     else if (expr instanceof And && exprCheckSubset instanceof And && parent instanceof Or) {
-      return checkContainsAllChildren((And)expr, (And)exprCheckSubset);
+      return checkContainsAllChildren((And<K>)expr, (And<K>)exprCheckSubset);
     }
 
     //  a | (a & b & c)
     //  a & (a | b | c)
     //  !a & (!a | b | c)
     else if (expr instanceof And && parent instanceof Or || expr instanceof Or && parent instanceof And) {
-      return checkContains((NExpression)expr, exprCheckSubset);
+      return checkContains((NExpression<K>)expr, exprCheckSubset);
     }
 
     return false;
   }
 
   private Expression<K> removeChild(NExpression<K> node, int index, ExprFactory<K> factory) {
-
-    List<Expression<K>> copy = new ArrayList<>();
-    for (int i = 0; i < node.expressions.length; i++) {
-      if (i != index) {
-        copy.add(node.expressions[i]);
+      if (node == null) {
+          throw new IllegalArgumentException("Node cannot be null");
       }
-    }
 
-    //  TODO factory probably
-    if (node instanceof And) {
-      return factory.and(copy.toArray(new Expression[copy.size()]));
-    }
+      List<Expression<K>> copy = new ArrayList<>();
+      for (int i = 0; i < node.expressions.length; i++) {
+          if (i != index) {
+              copy.add(node.expressions[i]);
+          }
+      }
 
-    if (node instanceof Or) {
-      return factory.or(copy.toArray(new Expression[copy.size()]));
-    }
+      if (node instanceof And) {
+          return factory.and(copy.toArray(new Expression[copy.size()]));
+      }
 
-    throw new RuntimeException("Unknown child of NExpression");
+      if (node instanceof Or) {
+          return factory.or(copy.toArray(new Expression[copy.size()]));
+      }
+
+      throw new RuntimeException("Unknown child of NExpression");
   }
 
   @Override
