@@ -50,18 +50,17 @@ public class SimplifyNExprChildren<K> extends Rule<NExpression<K>, K> {
   }
 
   private boolean checkContainsAllChildren(NExpression expr1, NExpression toCheck) {
+      int i = 0;
+      int j = 0;
 
-    int i = 0;
-    int j = 0;
-
-    while (i < expr1.expressions.length && j < toCheck.expressions.length) {
-      if (expr1.expressions[i].equals(toCheck.expressions[j])) {
-        j++;
+      while (i < expr1.expressions.length && j < toCheck.expressions.length) {
+          if (expr1.expressions[i].equals(toCheck.expressions[j])) {
+              j++;
+          }
+          i++;
       }
-      i++;
-    }
 
-    return j == toCheck.expressions.length;
+      return j == toCheck.expressions.length;
   }
 
   //  return true if we know that expr is always true when exprCheckSubset is true
@@ -93,24 +92,26 @@ public class SimplifyNExprChildren<K> extends Rule<NExpression<K>, K> {
   }
 
   private Expression<K> removeChild(NExpression<K> node, int index, ExprFactory<K> factory) {
-
-    List<Expression<K>> copy = new ArrayList<>();
-    for (int i = 0; i < node.expressions.length; i++) {
-      if (i != index) {
-        copy.add(node.expressions[i]);
+      if (node == null) {
+          throw new IllegalArgumentException("Node cannot be null");
       }
-    }
 
-    //  TODO factory probably
-    if (node instanceof And) {
-      return factory.and(copy.toArray(new Expression[copy.size()]));
-    }
+      List<Expression<K>> copy = new ArrayList<>();
+      for (int i = 0; i < node.expressions.length; i++) {
+          if (i != index) {
+              copy.add(node.expressions[i]);
+          }
+      }
 
-    if (node instanceof Or) {
-      return factory.or(copy.toArray(new Expression[copy.size()]));
-    }
+      if (node instanceof And) {
+          return factory.and(copy.toArray(new Expression[copy.size()]));
+      }
 
-    throw new RuntimeException("Unknown child of NExpression");
+      if (node instanceof Or) {
+          return factory.or(copy.toArray(new Expression[copy.size()]));
+      }
+
+      throw new RuntimeException("Unknown child of NExpression");
   }
 
   @Override
